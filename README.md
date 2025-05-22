@@ -1,4 +1,4 @@
-# B.O.T.A.N.I - Beobachtender Organischer Topf mit Automatischer Navigation und Intelligenz
+# B.O.T.A.N.I - Beobachtender Organischer Topf mit Agiler Navigation und Intelligenz
 
 A smart robotic system for remote plant care, navigation, and monitoring, designed using Raspberry Pis, sensors, and a LEGO vehicle base. B.O.T.A.N.I allows users to drive a plant-bearing vehicle via a custom-built controller equipped with a joystick, LED indicators, a buzzer, and a live video feed.
 
