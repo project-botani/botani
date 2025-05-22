@@ -1,0 +1,6 @@
+opencv-python
+adafruit-circuitpython-ads1x15
+RPi.GPIO
+paho-mqtt
+gpiozero
+lgpio

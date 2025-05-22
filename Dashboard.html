@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+     <head>
+          <meta charset="UTF-8" />
+          <meta
+               name="viewport"
+               content="width=device-width, initial-scale=1.0"
+          />
+          <title>B.O.T.A.N.I Dashboard</title>
+          <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+          <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+          <style>
+               html,
+               body {
+                    height: 100vh;
+                    margin: 0;
+                    padding: 0;
+                    overflow: hidden;
+                    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+                    background: #fff;
+                    color: #333;
+               }
+               header {
+                    text-align: center;
+                    padding: 0.1rem 0;
+                    background: #fff;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                    position: relative;
+                    z-index: 1000;
+                    height: 8%;
+               }
+               header h1 {
+                    font-size: 1.2rem;
+               }
+               .container {
+                    display: grid;
+                    grid-template-columns: 2fr 1fr;
+                    grid-template-rows: 1fr;
+                    height: 92%;
+                    width: 100%;
+               }
+               .video {
+                    position: relative;
+                    overflow: hidden;
+                    background: #fff;
+                    margin: 1rem;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+               }
+               .video img {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+               }
+               .right {
+                    display: grid;
+                    grid-template-rows: auto 1fr;
+                    gap: 1rem;
+                    padding: 1rem;
+                    box-sizing: border-box;
+                    background: #fff;
+                    height: 100%;
+                    overflow: hidden;
+               }
+               .sensors {
+                    display: flex;
+                    justify-content: space-between;
+                    gap: 1rem;
+               }
+               .card {
+                    flex: 1;
+                    background: #fff;
+                    padding: 1rem;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+               }
+               .card h2 {
+                    font-size: 1rem;
+                    font-weight: 600;
+                    color: #555;
+                    margin-bottom: 0.5rem;
+               }
+               .card .value {
+                    font-size: 1.5rem;
+                    font-weight: 700;
+                    color: #ff5722;
+               }
+               .graph-container {
+                    background: #fff;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                    padding: 1rem;
+                    display: flex;
+                    flex-direction: column;
+                    min-height: 0;
+               }
+               .graph-container h2 {
+                    font-size: 1rem;
+                    font-weight: 600;
+                    color: #555;
+                    margin-bottom: 0.5rem;
+               }
+               .graph-container canvas {
+                    flex: 1;
+                    min-height: 0;
+                    width: 100%;
+               }
+               @media (max-width: 768px) {
+                    .container {
+                         grid-template-columns: 1fr;
+                         grid-template-rows: auto auto 1fr;
+                    }
+                    .video {
+                         height: 40vh;
+                    }
+                    .right {
+                         padding: 0.5rem;
+                    }
+                    .sensors {
+                         flex-direction: column;
+                    }
+                    .card {
+                         width: 100%;
+                    }
+                    .graph-container {
+                         height: 40vh;
+                    }
+               }
+          </style>
+     </head>
+     <body>
+          <header>
+               <h1>B.O.T.A.N.I Dashboard</h1>
+          </header>
+          <div class="container">
+               <div class="video">
+                    <img
+                         id="cameraFeed"
+                         src="http://192.168.31.178:8080/"
+                         alt="Live Camera Feed"
+                    />
+               </div>
+               <div class="right">
+                    <div class="sensors">
+                         <div class="card">
+                              <h2>Brightness</h2>
+                              <div class="value" id="brightnessVal">--</div>
+                         </div>
+                         <div class="card">
+                              <h2>Humidity</h2>
+                              <div class="value" id="humidityVal">--</div>
+                         </div>
+                         <div class="card">
+                              <h2>Temperature</h2>
+                              <div class="value" id="temperatureVal">--</div>
+                         </div>
+                    </div>
+                    <div class="graph-container">
+                         <h2>Temperature Over Time</h2>
+                         <canvas id="tempChart"></canvas>
+                    </div>
+               </div>
+          </div>
+          <script>
+               const brokerUrl = "ws://192.168.31.178:8081";
+               const options = {
+                    clientId:
+                         "webClient_" + Math.random().toString(16).substr(2, 8),
+                    keepalive: 60,
+               };
+               const topics = {
+                    distance: "Distance",
+                    brightness: "Brightness",
+                    humidity: "Humidity",
+                    temperature: "Temperature",
+               };
+               const brightnessVal = document.getElementById("brightnessVal");
+               const humidityVal = document.getElementById("humidityVal");
+               const temperatureVal = document.getElementById("temperatureVal");
+               const ctx = document
+                    .getElementById("tempChart")
+                    .getContext("2d");
+               const tempChart = new Chart(ctx, {
+                    type: "line",
+                    data: {
+                         labels: [],
+                         datasets: [
+                              {
+                                   label: "Temperature (°C)",
+                                   data: [],
+                                   fill: false,
+                                   tension: 0.3,
+                              },
+                         ],
+                    },
+                    options: {
+                         responsive: true,
+                         maintainAspectRatio: false,
+                         scales: {
+                              x: { title: { display: true, text: "Time" } },
+                              y: { title: { display: true, text: "°C" } },
+                         },
+                    },
+               });
+               const client = mqtt.connect(brokerUrl, options);
+               client.on("connect", () =>
+                    Object.values(topics).forEach((t) => client.subscribe(t))
+               );
+               client.on("message", (topic, message) => {
+                    const msg = message.toString();
+                    const now = new Date().toLocaleTimeString();
+                    switch (topic) {
+                         case topics.distance:
+                              break;
+                         case topics.brightness:
+                              brightnessVal.textContent =
+                                   msg.split(".")[0] + " Lux";
+                              break;
+                         case topics.humidity:
+                              humidityVal.textContent = msg + " %";
+                              break;
+                         case topics.temperature:
+                              temperatureVal.textContent = msg + " °C";
+                              tempChart.data.labels.push(now);
+                              tempChart.data.datasets[0].data.push(
+                                   parseFloat(msg)
+                              );
+                              tempChart.update();
+                              break;
+                    }
+               });
+          </script>
+     </body>
+</html>

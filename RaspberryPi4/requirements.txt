@@ -1,0 +1,9 @@
+#camerastream
+picamera2
+fastapi
+uvicorn
+opencv-python
+
+#servo
+paho-mqtt
+adafruit-circuitpython-servokit
